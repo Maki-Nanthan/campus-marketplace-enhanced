@@ -1,24 +1,27 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ThemeColors } from "../theme";
 
 export function EmptyState({
   title,
   message,
   action,
   onAction,
+  colors,
 }: {
   title: string;
   message: string;
   action?: string;
   onAction?: () => void;
+  colors: ThemeColors;
 }) {
   return (
     <View style={styles.container}>
       <Text style={styles.icon}>✦</Text>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.message}>{message}</Text>
+      <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.message, { color: colors.muted }]}>{message}</Text>
       {action && (
-        <Pressable style={styles.button} onPress={onAction}>
-          <Text style={styles.buttonText}>{action}</Text>
+        <Pressable style={[styles.button, { backgroundColor: colors.accent }]} onPress={onAction}>
+          <Text style={[styles.buttonText, { color: colors.accentText }]}>{action}</Text>
         </Pressable>
       )}
     </View>

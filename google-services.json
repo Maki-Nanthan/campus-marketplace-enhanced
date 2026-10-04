@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "580413778167",
+    "project_id": "campus-marketplace-832fc",
+    "storage_bucket": "campus-marketplace-832fc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:580413778167:android:81218c5686cabdbe848bf2",
+        "android_client_info": {
+          "package_name": "com.nsayoo.campus_marketplace"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4RFPi5lc9DjeG9iDFB23p19Erc081UNQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

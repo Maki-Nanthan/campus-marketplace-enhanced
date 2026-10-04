@@ -1,5 +1,6 @@
 import {
   FlatList,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -7,20 +8,34 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useEffect, useRef, useState } from "react";
 import { EmptyState } from "../components/EmptyState";
 import { ListingCard } from "../components/ListingCard";
 import { categories } from "../data";
+import { Currency } from "../currency";
+import { ThemeColors } from "../theme";
 import { Listing } from "../types";
+
+function priceDraft(usd: number, currency: Currency, exchangeRate?: number): string {
+  if (usd <= 0) return "";
+  return String(currency === "LKR" ? Math.round(usd * (exchangeRate || 1)) : usd);
+}
 
 export function ExplorePage({
   items,
   query,
   category,
+  minPrice,
   maxPrice,
   sortBy,
   savedIds,
+  photoURL,
+  currency,
+  exchangeRate,
+  colors,
   onQueryChange,
   onCategoryChange,
+  onMinPriceChange,
   onMaxPriceChange,
   onSortByChange,
   onResetFilters,
@@ -31,11 +46,17 @@ export function ExplorePage({
   items: Listing[];
   query: string;
   category: string;
+  minPrice: number;
   maxPrice: number | null;
   sortBy: "newest" | "price-asc" | "price-desc";
   savedIds: string[];
+  photoURL: string | null;
+  currency: Currency;
+  exchangeRate?: number;
+  colors: ThemeColors;
   onQueryChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
+  onMinPriceChange: (value: number) => void;
   onMaxPriceChange: (value: number | null) => void;
   onSortByChange: (value: "newest" | "price-asc" | "price-desc") => void;
   onResetFilters: () => void;
@@ -43,49 +64,92 @@ export function ExplorePage({
   onOpen: (item: Listing) => void;
   onProfile: () => void;
 }) {
+  const unitKey = `${currency}:${exchangeRate || ""}`;
+  const previousUnit = useRef(unitKey);
+  const [minDraft, setMinDraft] = useState(() =>
+    priceDraft(minPrice, currency, exchangeRate),
+  );
+  const [maxDraft, setMaxDraft] = useState(() =>
+    maxPrice !== null ? priceDraft(maxPrice, currency, exchangeRate) : "",
+  );
+  useEffect(() => {
+    if (previousUnit.current === unitKey) return;
+    previousUnit.current = unitKey;
+    setMinDraft(priceDraft(minPrice, currency, exchangeRate));
+    setMaxDraft(maxPrice !== null ? priceDraft(maxPrice, currency, exchangeRate) : "");
+  }, [currency, exchangeRate, maxPrice, minPrice, unitKey]);
+  const updateRange = (value: string, edge: "min" | "max") => {
+    const number = Number(value);
+    if (!value.trim()) {
+      if (edge === "min") onMinPriceChange(0);
+      else onMaxPriceChange(null);
+    } else if (Number.isFinite(number) && number >= 0) {
+      const inUsd = currency === "LKR" ? number / (exchangeRate || 1) : number;
+      if (edge === "min") onMinPriceChange(inUsd);
+      else onMaxPriceChange(inUsd);
+    }
+    if (edge === "min") setMinDraft(value);
+    else setMaxDraft(value);
+  };
+  const invalidRange = maxPrice !== null && minPrice > maxPrice;
+  const clearFilters = () => {
+    setMinDraft("");
+    setMaxDraft("");
+    onResetFilters();
+  };
   const hasActiveFilters =
     query.trim().length > 0 ||
     category !== "All items" ||
+    minPrice > 0 ||
     maxPrice !== null ||
     sortBy !== "newest";
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={[styles.content, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.eyebrow}>CAMPUS MARKETPLACE</Text>
-          <Text style={styles.heading}>
+          <Text style={[styles.eyebrow, { color: colors.muted }]}>CAMPUS MARKETPLACE</Text>
+          <Text style={[styles.heading, { color: colors.text }]}>
             Find your next{"\n"}favorite thing.
           </Text>
         </View>
-        <Pressable style={styles.avatar} onPress={onProfile}>
-          <Text style={styles.avatarText}>?</Text>
+        <Pressable
+          style={[styles.avatar, { backgroundColor: colors.accentSoft }]}
+          onPress={onProfile}
+          accessibilityRole="button"
+          accessibilityLabel="Open Profile"
+        >
+          {photoURL ? (
+            <Image source={{ uri: photoURL }} style={styles.avatarImage} />
+          ) : (
+            <Text style={[styles.avatarText, { color: colors.accent }]}>P</Text>
+          )}
         </Pressable>
       </View>
-      <View style={styles.search}>
-        <Text style={styles.icon}>⌕</Text>
+      <View style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.icon, { color: colors.muted }]}>⌕</Text>
         <TextInput
           value={query}
           onChangeText={onQueryChange}
           placeholder="Search textbooks, desks, tech..."
-          placeholderTextColor="#87918C"
-          style={styles.input}
+          placeholderTextColor={colors.muted}
+          style={[styles.input, { color: colors.text }]}
         />
         {query.length > 0 && (
           <Pressable
             onPress={() => onQueryChange("")}
             hitSlop={8}
-            style={styles.clearBtn}
+            style={[styles.clearBtn, { backgroundColor: colors.surfaceMuted }]}
           >
-            <Text style={styles.clearText}>✕</Text>
+            <Text style={[styles.clearText, { color: colors.muted }]}>✕</Text>
           </Pressable>
         )}
       </View>
       <View style={styles.section}>
         <View>
-          <Text style={styles.sectionTitle}>Browse near you</Text>
-          <Text style={styles.muted}>Good finds, close by</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Browse near you</Text>
+          <Text style={[styles.muted, { color: colors.muted }]}>Good finds, close by</Text>
         </View>
-        <Text style={styles.seeAll}>{items.length} items</Text>
+        <Text style={[styles.seeAll, { color: colors.accent }]}>{items.length} items</Text>
       </View>
       <ScrollView
         horizontal
@@ -98,13 +162,16 @@ export function ExplorePage({
             onPress={() => onCategoryChange(value)}
             style={[
               styles.category,
-              category === value && styles.activeCategory,
+              {
+                backgroundColor:
+                  category === value ? colors.accent : colors.surfaceMuted,
+              },
             ]}
           >
             <Text
               style={[
                 styles.categoryText,
-                category === value && styles.activeText,
+                { color: category === value ? colors.accentText : colors.muted },
               ]}
             >
               {value}
@@ -114,8 +181,15 @@ export function ExplorePage({
       </ScrollView>
 
       {/* Sort & Price Filters */}
-      <View style={styles.filterSection}>
-        <Text style={styles.filterGroupTitle}>Sort by Price</Text>
+      <View
+        style={[
+          styles.filterSection,
+          { backgroundColor: colors.surfaceMuted, borderColor: colors.border },
+        ]}
+      >
+        <Text style={[styles.filterGroupTitle, { color: colors.muted }]}>
+          Sort by Price
+        </Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -125,13 +199,16 @@ export function ExplorePage({
             onPress={() => onSortByChange("newest")}
             style={[
               styles.filterChip,
-              sortBy === "newest" && styles.activeFilterChip,
+              {
+                backgroundColor: sortBy === "newest" ? colors.accent : colors.surface,
+                borderColor: colors.border,
+              },
             ]}
           >
             <Text
               style={[
                 styles.filterChipText,
-                sortBy === "newest" && styles.activeFilterChipText,
+                { color: sortBy === "newest" ? colors.accentText : colors.text },
               ]}
             >
               Newest
@@ -141,13 +218,16 @@ export function ExplorePage({
             onPress={() => onSortByChange("price-asc")}
             style={[
               styles.filterChip,
-              sortBy === "price-asc" && styles.activeFilterChip,
+              {
+                backgroundColor: sortBy === "price-asc" ? colors.accent : colors.surface,
+                borderColor: colors.border,
+              },
             ]}
           >
             <Text
               style={[
                 styles.filterChipText,
-                sortBy === "price-asc" && styles.activeFilterChipText,
+                { color: sortBy === "price-asc" ? colors.accentText : colors.text },
               ]}
             >
               Price: Low to High ↑
@@ -157,13 +237,16 @@ export function ExplorePage({
             onPress={() => onSortByChange("price-desc")}
             style={[
               styles.filterChip,
-              sortBy === "price-desc" && styles.activeFilterChip,
+              {
+                backgroundColor: sortBy === "price-desc" ? colors.accent : colors.surface,
+                borderColor: colors.border,
+              },
             ]}
           >
             <Text
               style={[
                 styles.filterChipText,
-                sortBy === "price-desc" && styles.activeFilterChipText,
+                { color: sortBy === "price-desc" ? colors.accentText : colors.text },
               ]}
             >
               Price: High to Low ↓
@@ -171,88 +254,48 @@ export function ExplorePage({
           </Pressable>
         </ScrollView>
 
-        <Text style={[styles.filterGroupTitle, { marginTop: 12 }]}>
-          Max Price
+        <Text style={[styles.filterGroupTitle, { color: colors.muted, marginTop: 12 }]}>
+          Price range ({currency})
         </Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-        >
-          <Pressable
-            onPress={() => onMaxPriceChange(null)}
-            style={[
-              styles.filterChip,
-              maxPrice === null && styles.activeFilterChip,
-            ]}
-          >
-            <Text
-              style={[
-                styles.filterChipText,
-                maxPrice === null && styles.activeFilterChipText,
-              ]}
-            >
-              All Prices
-            </Text>
+        <View style={styles.priceRangeRow}>
+          <View style={styles.priceRangeField}>
+            <Text style={[styles.priceRangeLabel, { color: colors.muted }]}>Minimum</Text>
+            <TextInput
+              value={minDraft}
+              onChangeText={(value) => updateRange(value, "min")}
+              keyboardType="decimal-pad"
+              placeholder="No minimum"
+              placeholderTextColor={colors.muted}
+              style={[styles.priceInput, { backgroundColor: colors.surface, borderColor: invalidRange ? "#C3535B" : colors.border, color: colors.text }]}
+            />
+          </View>
+          <View style={styles.priceRangeField}>
+            <Text style={[styles.priceRangeLabel, { color: colors.muted }]}>Maximum</Text>
+            <TextInput
+              value={maxDraft}
+              onChangeText={(value) => updateRange(value, "max")}
+              keyboardType="decimal-pad"
+              placeholder="No maximum"
+              placeholderTextColor={colors.muted}
+              style={[styles.priceInput, { backgroundColor: colors.surface, borderColor: invalidRange ? "#C3535B" : colors.border, color: colors.text }]}
+            />
+          </View>
+        </View>
+        {invalidRange ? <Text style={styles.rangeError}>Minimum price cannot be greater than maximum price.</Text> : null}
+        {(minPrice > 0 || maxPrice !== null) ? (
+          <Pressable onPress={() => { setMinDraft(""); setMaxDraft(""); onMinPriceChange(0); onMaxPriceChange(null); }} style={styles.anyPriceButton}>
+            <Text style={[styles.anyPriceText, { color: colors.accent }]}>Clear price range</Text>
           </Pressable>
-          <Pressable
-            onPress={() => onMaxPriceChange(40)}
-            style={[
-              styles.filterChip,
-              maxPrice === 40 && styles.activeFilterChip,
-            ]}
-          >
-            <Text
-              style={[
-                styles.filterChipText,
-                maxPrice === 40 && styles.activeFilterChipText,
-              ]}
-            >
-              Under $40
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => onMaxPriceChange(80)}
-            style={[
-              styles.filterChip,
-              maxPrice === 80 && styles.activeFilterChip,
-            ]}
-          >
-            <Text
-              style={[
-                styles.filterChipText,
-                maxPrice === 80 && styles.activeFilterChipText,
-              ]}
-            >
-              Under $80
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => onMaxPriceChange(120)}
-            style={[
-              styles.filterChip,
-              maxPrice === 120 && styles.activeFilterChip,
-            ]}
-          >
-            <Text
-              style={[
-                styles.filterChipText,
-                maxPrice === 120 && styles.activeFilterChipText,
-              ]}
-            >
-              Under $120
-            </Text>
-          </Pressable>
-        </ScrollView>
+        ) : null}
       </View>
 
       {/* Active filters summary */}
       {hasActiveFilters && (
-        <View style={styles.activeFiltersBar}>
-          <Text style={styles.activeFiltersCount}>
+        <View style={[styles.activeFiltersBar, { backgroundColor: colors.accentSoft }]}>
+          <Text style={[styles.activeFiltersCount, { color: colors.accent }]}>
             {items.length} {items.length === 1 ? "item found" : "items found"}
           </Text>
-          <Pressable onPress={onResetFilters} style={styles.resetBtn}>
+          <Pressable onPress={clearFilters} style={styles.resetBtn}>
             <Text style={styles.resetBtnText}>Clear all filters ✕</Text>
           </Pressable>
         </View>
@@ -267,6 +310,7 @@ export function ExplorePage({
         contentContainerStyle={styles.grid}
         ListEmptyComponent={
           <EmptyState
+            colors={colors}
             title="No items found"
             message={
               query
@@ -274,13 +318,16 @@ export function ExplorePage({
                 : "No items match your selected category or price filters."
             }
             action="Clear all filters"
-            onAction={onResetFilters}
+            onAction={clearFilters}
           />
         }
         renderItem={({ item }) => (
           <ListingCard
             item={item}
             saved={savedIds.includes(item.id)}
+            currency={currency}
+            exchangeRate={exchangeRate}
+            colors={colors}
             onSave={() => onSave(item.id)}
             onOpen={() => onOpen(item)}
           />
@@ -318,6 +365,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  avatarImage: { width: 42, height: 42, borderRadius: 21 },
   avatarText: { color: "#225347", fontWeight: "800" },
   search: {
     height: 52,
@@ -412,6 +460,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
+  priceRangeRow: { flexDirection: "row", gap: 10, marginTop: 8 },
+  priceRangeField: { flex: 1, gap: 5 },
+  priceRangeLabel: { fontSize: 11, fontWeight: "700" },
+  priceInput: { height: 42, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, fontSize: 13 },
+  rangeError: { color: "#B64950", fontSize: 11, marginTop: 7 },
+  anyPriceButton: { alignSelf: "flex-end", paddingTop: 10 },
+  anyPriceText: { fontSize: 12, fontWeight: "700" },
   activeFilterChipText: {
     color: "#FFF",
     fontWeight: "700",
@@ -443,4 +498,3 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
-

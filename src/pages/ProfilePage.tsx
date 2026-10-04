@@ -5,11 +5,18 @@ import {
   StyleSheet,
   Text,
   View,
+  ActivityIndicator,
 } from "react-native";
 import { User } from "firebase/auth";
 import { PageTitle } from "../components/PageTitle";
+import { ThemeColors } from "../theme";
+
 export function ProfilePage({
   user,
+  photoURL,
+  username,
+  photoBusy,
+  colors,
   savedCount,
   listingCount,
   firebaseConfigured,
@@ -19,8 +26,14 @@ export function ProfilePage({
   onSaved,
   onSignIn,
   onSignOut,
+  onSettings,
+  onUploadPhoto,
 }: {
   user: User | null;
+  photoURL: string | null;
+  username: string;
+  photoBusy: boolean;
+  colors: ThemeColors;
   savedCount: number;
   listingCount: number;
   firebaseConfigured: boolean;
@@ -30,6 +43,8 @@ export function ProfilePage({
   onSaved: () => void;
   onSignIn: () => void;
   onSignOut: () => void;
+  onSettings: () => void;
+  onUploadPhoto: () => void;
 }) {
   const name =
     user?.displayName || user?.email?.split("@")[0] || "Campus guest";
@@ -39,119 +54,402 @@ export function ProfilePage({
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
   return (
-    <ScrollView contentContainerStyle={styles.content}>
-      <PageTitle title="Profile" subtitle="Your campus marketplace account" />
-      <View style={styles.hero}>
-        {user?.photoURL ? (
-          <Image source={{ uri: user.photoURL }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatar}>
-            <Text style={styles.initials}>{user ? initials : "?"}</Text>
-          </View>
-        )}
-        <Text style={styles.name}>{name}</Text>
-        <Text style={styles.muted}>
-          {user?.email || "Sign in to sell and message"}
-        </Text>
+    <ScrollView
+      contentContainerStyle={[styles.content, { backgroundColor: colors.background }]}
+      showsVerticalScrollIndicator={false}
+    >
+      <PageTitle
+        title="Profile"
+        subtitle="Your campus marketplace account"
+        colors={colors}
+      />
+
+      {/* Hero / Avatar */}
+      <View style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.avatarWrap}>
+          {photoURL ? (
+            <Image source={{ uri: photoURL }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: colors.accentSoft }]}>
+              <Text style={[styles.initials, { color: colors.accent }]}>
+                {user ? initials : "P"}
+              </Text>
+            </View>
+          )}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={user ? "Upload profile photo" : "Sign in to add a profile photo"}
+            disabled={photoBusy}
+            onPress={user ? onUploadPhoto : onSignIn}
+            style={[styles.photoEditButton, { backgroundColor: colors.accent }]}
+          >
+            {photoBusy ? (
+              <ActivityIndicator size="small" color={colors.accentText} />
+            ) : (
+              <Text style={[styles.photoEditIcon, { color: colors.accentText }]}>✎</Text>
+            )}
+          </Pressable>
+        </View>
+        <View style={styles.heroText}>
+          <Text style={[styles.name, { color: colors.text }]}>{name}</Text>
+          {user && username ? <Text style={[styles.username, { color: colors.accent }]}>@{username}</Text> : null}
+          <Text style={[styles.email, { color: colors.muted }]}>
+            {user?.email || "Sign in to sell and save"}
+          </Text>
+          <Pressable
+            disabled={photoBusy}
+            onPress={user ? onUploadPhoto : onSignIn}
+            accessibilityRole="button"
+            style={styles.photoAction}
+          >
+            <Text style={[styles.photoActionText, { color: colors.accent }]}>
+              {photoBusy ? "Saving photo…" : user ? "Update profile photo" : "Add a profile photo"}
+            </Text>
+          </Pressable>
+          {user && profileReady && (
+            <View style={[styles.verifiedBadge, { backgroundColor: colors.accentSoft }]}>
+              <Text style={[styles.verifiedText, { color: colors.accent }]}>
+                ✓ Connected to Firebase
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
-      <View style={styles.menu}>
-        <Row
-          label="My listings"
-          value={String(listingCount)}
+
+      {/* Stats row */}
+      <View style={styles.statsRow}>
+        <Pressable
+          style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
           onPress={onMyListings}
-        />
-        <Row label="Saved items" value={String(savedCount)} onPress={onSaved} />
-        <Row label="Meetup preferences" value="North Campus" />
+          accessibilityRole="button"
+          accessibilityLabel="View my listings"
+        >
+          <Text style={[styles.statValue, { color: colors.accent }]}>{listingCount}</Text>
+          <Text style={[styles.statLabel, { color: colors.muted }]}>Listings</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          onPress={onSaved}
+          accessibilityRole="button"
+          accessibilityLabel="View saved items"
+        >
+          <Text style={[styles.statValue, { color: colors.accent }]}>{savedCount}</Text>
+          <Text style={[styles.statLabel, { color: colors.muted }]}>Saved</Text>
+        </Pressable>
+        <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.statValue, { color: colors.accent }]}>🏫</Text>
+          <Text style={[styles.statLabel, { color: colors.muted }]}>Campus</Text>
+        </View>
       </View>
+
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Your activity</Text>
+      <View style={[styles.menu, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <MenuRow
+          icon="▣"
+          label="My listings"
+          value={`${listingCount} item${listingCount !== 1 ? "s" : ""}`}
+          onPress={onMyListings}
+          colors={colors}
+        />
+        <MenuRow
+          icon="♡"
+          label="Saved items"
+          value={`${savedCount} saved`}
+          onPress={onSaved}
+          colors={colors}
+        />
+      </View>
+
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Map Location</Text>
+      <View
+        style={[
+          styles.locationCard,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
+        <View style={[styles.locationIconBox, { backgroundColor: colors.accentSoft }]}>
+          <Text style={[styles.locationIcon, { color: colors.accent }]}>⌖</Text>
+        </View>
+        <View style={styles.locationDetails}>
+          <Text style={[styles.locationName, { color: colors.text }]}>North Campus</Text>
+          <Text style={[styles.locationSubtitle, { color: colors.muted }]}>
+            Your preferred meetup area
+          </Text>
+        </View>
+        <View style={[styles.locationTag, { backgroundColor: colors.accentSoft }]}>
+          <Text style={[styles.locationTagText, { color: colors.accent }]}>CAMPUS</Text>
+        </View>
+      </View>
+
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Settings</Text>
+      <Pressable
+        onPress={onSettings}
+        accessibilityRole="button"
+        accessibilityLabel="Open settings"
+        style={[
+          styles.settingsCard,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
+        <View style={[styles.settingsIconBox, { backgroundColor: colors.accentSoft }]}>
+          <Text style={[styles.settingsIcon, { color: colors.accent }]}>⚙</Text>
+        </View>
+        <View style={styles.settingsDetails}>
+          <Text style={[styles.settingsTitle, { color: colors.text }]}>Appearance & currency</Text>
+          <Text style={[styles.settingsSubtitle, { color: colors.muted }]}>
+            Theme, currency and profile photo
+          </Text>
+        </View>
+        <Text style={[styles.settingsChevron, { color: colors.muted }]}>›</Text>
+      </Pressable>
+
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      {user && profileReady ? (
-        <Text style={styles.success}>Profile saved to Firebase</Text>
-      ) : null}
+
       {user ? (
-        <Pressable style={styles.outline} onPress={onSignOut}>
-          <Text style={styles.outlineText}>Sign out</Text>
+        <Pressable
+          style={[styles.outline, { borderColor: colors.border }]}
+          onPress={onSignOut}
+          accessibilityRole="button"
+          accessibilityLabel="Sign out"
+        >
+          <Text style={[styles.outlineText, { color: colors.accent }]}>Sign out</Text>
         </Pressable>
       ) : (
-        <Pressable style={styles.primary} onPress={onSignIn}>
-          <Text style={styles.primaryText}>Sign in to continue</Text>
+        <Pressable
+          style={[styles.primary, { backgroundColor: colors.accent }]}
+          onPress={onSignIn}
+          accessibilityRole="button"
+          accessibilityLabel="Sign in to continue"
+        >
+          <Text style={[styles.primaryText, { color: colors.accentText }]}>
+            Sign in to continue
+          </Text>
         </Pressable>
       )}
-      <Text style={styles.backend}>
+
+      <Text style={[styles.backend, { color: colors.muted }]}>
         {firebaseConfigured
-          ? "Connected to Firebase"
+          ? "🔒 Data saved securely to Firebase"
           : "Demo mode · Add Firebase keys to connect"}
       </Text>
     </ScrollView>
   );
 }
-function Row({
+
+function MenuRow({
+  icon,
   label,
   value,
   onPress,
+  colors,
+  last,
 }: {
+  icon: string;
   label: string;
   value: string;
   onPress?: () => void;
+  colors: ThemeColors;
+  last?: boolean;
 }) {
   return (
-    <Pressable style={styles.row} onPress={onPress}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.muted}>{value}</Text>
+    <Pressable
+      style={[
+        styles.row,
+        { borderBottomColor: colors.border },
+        last && styles.rowLast,
+      ]}
+      onPress={onPress}
+      accessibilityRole={onPress ? "button" : undefined}
+    >
+      <View style={styles.rowLeft}>
+        <Text
+          style={[
+            styles.rowIcon,
+            { color: colors.accent, backgroundColor: colors.accentSoft },
+          ]}
+        >
+          {icon}
+        </Text>
+        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+      </View>
+      <View style={styles.rowRight}>
+        <Text style={[styles.muted, { color: colors.muted }]}>{value}</Text>
+        {onPress && <Text style={[styles.chevron, { color: colors.muted }]}>›</Text>}
+      </View>
     </Pressable>
   );
 }
+
 const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 110 },
-  hero: { alignItems: "center", paddingBottom: 28 },
+
+  // Hero card
+  hero: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 16,
+  },
+  avatarWrap: { position: "relative" },
   avatar: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: "#D6E5D7",
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+  },
+  avatarFallback: {
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 14,
   },
-  initials: { fontSize: 22, color: "#225347", fontWeight: "800" },
-  name: { color: "#173C34", fontSize: 24, fontWeight: "800", marginBottom: 6 },
-  muted: { color: "#87918C", fontSize: 12 },
-  menu: {
-    backgroundColor: "#FFF",
-    borderRadius: 16,
-    paddingHorizontal: 18,
+  photoEditButton: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  photoEditIcon: { fontSize: 14, fontWeight: "800" },
+  photoAction: { alignSelf: "flex-start", paddingVertical: 2 },
+  photoActionText: { fontSize: 11, fontWeight: "700" },
+  initials: { fontSize: 22, fontWeight: "800" },
+  heroText: { flex: 1, gap: 4 },
+  name: { fontSize: 20, fontWeight: "800" },
+  username: { fontSize: 12, fontWeight: "700" },
+  email: { fontSize: 12 },
+  verifiedBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 6,
+  },
+  verifiedText: { fontSize: 11, fontWeight: "700" },
+
+  // Stats row
+  statsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 16,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#E9ECE6",
+    padding: 14,
+    alignItems: "center",
+    gap: 4,
+  },
+  statValue: { fontSize: 22, fontWeight: "800" },
+  statLabel: { fontSize: 11, fontWeight: "600" },
+
+  // Menu
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    marginBottom: 9,
+    marginTop: 4,
+  },
+  menu: {
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    marginBottom: 16,
   },
   row: {
-    height: 58,
+    minHeight: 58,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: "#EEF1EC",
   },
-  label: { color: "#24483D", fontWeight: "700", fontSize: 14 },
+  rowLast: { borderBottomWidth: 0 },
+  rowLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  rowRight: { flexDirection: "row", alignItems: "center", gap: 4 },
+  rowIcon: {
+    fontSize: 18,
+    width: 34,
+    height: 34,
+    lineHeight: 34,
+    textAlign: "center",
+    borderRadius: 11,
+    overflow: "hidden",
+    color: "#1F5D4C",
+    backgroundColor: "#E6F0E6",
+  },
+  label: { fontWeight: "700", fontSize: 14 },
+  muted: { fontSize: 12 },
+  chevron: { fontSize: 20, fontWeight: "300" },
+  locationCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 18,
+  },
+  locationIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  locationIcon: { fontSize: 26, fontWeight: "700" },
+  locationDetails: { flex: 1, gap: 4 },
+  locationName: { fontSize: 14, fontWeight: "800" },
+  locationSubtitle: { fontSize: 11 },
+  locationTag: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8 },
+  locationTagText: { fontSize: 9, fontWeight: "900", letterSpacing: 0.8 },
+  settingsCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 16,
+  },
+  settingsIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  settingsIcon: { fontSize: 20 },
+  settingsDetails: { flex: 1, gap: 4 },
+  settingsTitle: { fontSize: 14, fontWeight: "800" },
+  settingsSubtitle: { fontSize: 11 },
+  settingsChevron: { fontSize: 26, fontWeight: "300" },
+
+  // Buttons
   primary: {
     height: 50,
-    backgroundColor: "#1F5D4C",
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 24,
+    marginTop: 8,
   },
-  primaryText: { color: "#FFF", fontWeight: "800" },
+  primaryText: { fontWeight: "800" },
   outline: {
     height: 50,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#BCD0C3",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 16,
+    marginTop: 8,
   },
-  outlineText: { color: "#1F5D4C", fontWeight: "800" },
-  success: { color: "#23775D", fontSize: 12, fontWeight: "700", marginTop: 16 },
+  outlineText: { fontWeight: "800" },
   error: {
     color: "#B64950",
     backgroundColor: "#FBECEE",
@@ -163,8 +461,8 @@ const styles = StyleSheet.create({
   },
   backend: {
     textAlign: "center",
-    color: "#9BA59F",
     fontSize: 11,
     marginTop: 22,
+    marginBottom: 4,
   },
 });
