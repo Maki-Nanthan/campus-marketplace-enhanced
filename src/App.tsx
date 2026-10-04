@@ -12,6 +12,7 @@ import {
   User,
 } from "firebase/auth";
 import * as ImagePicker from "expo-image-picker";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import {
   collection,
   deleteDoc,
@@ -58,6 +59,7 @@ import {
   signUpWithEmail,
 } from "./auth";
 import { createListing, updateListing, updateListingStatus } from "./listings";
+import { generateListingImage } from "./imageGeneration";
 import { convertToUsd, Currency, fetchUsdToLkrRate, formatPrice } from "./currency";
 import {
   loadLocalUserSettings,
@@ -1438,6 +1440,9 @@ function SellModal({
   const [imageBase64, setImageBase64] = useState<string | undefined>(undefined);
   const [imageMimeType, setImageMimeType] = useState<string | undefined>(undefined);
   const [imagePickBusy, setImagePickBusy] = useState(false);
+  const [generatedImageBase64, setGeneratedImageBase64] = useState<string | undefined>(undefined);
+  const [generatedImageMimeType, setGeneratedImageMimeType] = useState<string | undefined>(undefined);
+  const [imageGenerateBusy, setImageGenerateBusy] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [offerEnabled, setOfferEnabled] = useState(false);
   const [offerTitle, setOfferTitle] = useState("");
@@ -1475,6 +1480,8 @@ function SellModal({
     setImageUri(editingListing.image);
     setImageBase64(undefined);
     setImageMimeType(undefined);
+    setGeneratedImageBase64(undefined);
+    setGeneratedImageMimeType(undefined);
     setOfferEnabled(Boolean(editingListing.offer));
     setOfferTitle(editingListing.offer?.title || "");
     setOfferPrice(
@@ -1498,7 +1505,10 @@ function SellModal({
     setImageUri(null);
     setImageBase64(undefined);
     setImageMimeType(undefined);
+    setGeneratedImageBase64(undefined);
+    setGeneratedImageMimeType(undefined);
     setSubmitting(false);
+    setImageGenerateBusy(false);
     setOfferEnabled(false);
     setOfferTitle("");
     setOfferPrice("");
@@ -1524,24 +1534,65 @@ function SellModal({
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
-        base64: true,
       });
       if (result.canceled) return;
       const asset = result.assets[0];
       if (!asset) return;
-      const fileSize = asset.fileSize ?? Math.ceil(((asset.base64?.length ?? 0) * 3) / 4);
-      if (fileSize >= 8 * 1024 * 1024) {
+      const fileSize = asset.fileSize;
+      if (fileSize !== undefined && fileSize >= 8 * 1024 * 1024) {
         Alert.alert("Image too large", "Please choose an image under 8 MB.");
         return;
       }
+<<<<<<< HEAD
       const base64 = asset.base64 ?? await imageUriToBase64(asset.uri);
       setImageUri(asset.uri);
       setImageBase64(base64);
       setImageMimeType(asset.mimeType ?? "image/jpeg");
+=======
+      const compressed = await manipulateAsync(
+        asset.uri,
+        [{ resize: { width: 1280 } }],
+        { compress: 0.82, format: SaveFormat.JPEG, base64: true },
+      );
+      if (!compressed.base64) {
+        throw new Error("Could not prepare the selected photo. Please choose another image.");
+      }
+      setImageUri(compressed.uri);
+      setImageBase64(compressed.base64);
+      setImageMimeType("image/jpeg");
+      setGeneratedImageBase64(undefined);
+      setGeneratedImageMimeType(undefined);
+>>>>>>> f2ea6e80352fc23d82686704b5394db38b38800c
     } catch (error) {
       Alert.alert("Could not pick image", error instanceof Error ? error.message : "Please try again.");
     } finally {
       setImagePickBusy(false);
+    }
+  };
+
+  const generatePhoto = async () => {
+    if (!imageBase64) {
+      Alert.alert("Choose a product photo", "Select a photo before generating an AI version.");
+      return;
+    }
+    setImageGenerateBusy(true);
+    try {
+      const generated = await generateListingImage({
+        imageBase64,
+        mimeType: imageMimeType || "image/jpeg",
+        title: title.trim() || "Product for sale",
+        category,
+        condition,
+      });
+      setGeneratedImageBase64(generated.imageBase64);
+      setGeneratedImageMimeType(generated.mimeType);
+    } catch (error) {
+      Alert.alert(
+        "Could not generate AI photo",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+    } finally {
+      setImageGenerateBusy(false);
     }
   };
 
@@ -1554,8 +1605,10 @@ function SellModal({
         category,
         description,
         condition,
-        imageBase64,
-        imageMimeType,
+        generatedImageBase64 || imageBase64,
+        generatedImageBase64
+          ? generatedImageMimeType || "image/jpeg"
+          : imageMimeType,
         offerEnabled
           ? {
               title: offerTitle,
@@ -1595,7 +1648,7 @@ function SellModal({
           <Text style={[styles.label, { color: colors.text }]}>Product photo</Text>
           <Pressable
             onPress={pickImage}
-            disabled={imagePickBusy}
+            disabled={imagePickBusy || imageGenerateBusy || submitting}
             style={[
               styles.imagePicker,
               {
@@ -1606,13 +1659,22 @@ function SellModal({
             accessibilityRole="button"
             accessibilityLabel="Pick product image"
           >
-            {imagePickBusy ? (
+            {imagePickBusy || imageGenerateBusy ? (
               <ActivityIndicator color={colors.accent} />
             ) : imageUri ? (
               <>
-                <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+                <Image
+                  source={{
+                    uri: generatedImageBase64
+                      ? `data:${generatedImageMimeType || "image/jpeg"};base64,${generatedImageBase64}`
+                      : imageUri,
+                  }}
+                  style={styles.imagePreview}
+                />
                 <View style={[styles.imageChangeOverlay, { backgroundColor: "rgba(0,0,0,0.45)" }]}>
-                  <Text style={styles.imageChangeText}>Tap to change</Text>
+                  <Text style={styles.imageChangeText}>
+                    {generatedImageBase64 ? "AI-generated photo" : "Tap to change"}
+                  </Text>
                 </View>
               </>
             ) : (
@@ -1627,6 +1689,43 @@ function SellModal({
               </View>
             )}
           </Pressable>
+          {imageBase64 ? (
+            <View style={styles.aiPhotoActions}>
+              <Pressable
+                onPress={generatePhoto}
+                disabled={imageGenerateBusy || imagePickBusy || submitting}
+                style={[
+                  styles.aiPhotoButton,
+                  { borderColor: colors.accent, backgroundColor: colors.surfaceMuted },
+                  (imageGenerateBusy || imagePickBusy || submitting) && styles.disabled,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Generate an AI-transformed product photo"
+              >
+                <Text style={[styles.aiPhotoButtonText, { color: colors.accent }]}>
+                  {imageGenerateBusy ? "Generating AI photo…" : generatedImageBase64 ? "Regenerate AI photo" : "Generate AI photo"}
+                </Text>
+              </Pressable>
+              {generatedImageBase64 ? (
+                <Pressable
+                  onPress={() => {
+                    setGeneratedImageBase64(undefined);
+                    setGeneratedImageMimeType(undefined);
+                  }}
+                  disabled={imageGenerateBusy || submitting}
+                  accessibilityRole="button"
+                  accessibilityLabel="Use the original product photo"
+                >
+                  <Text style={[styles.aiPhotoOriginalText, { color: colors.muted }]}>
+                    Use original
+                  </Text>
+                </Pressable>
+              ) : null}
+              <Text style={[styles.aiPhotoHint, { color: colors.muted }]}>
+                AI creates a new image based on your photo. Review it before publishing.
+              </Text>
+            </View>
+          ) : null}
 
           {/* Title */}
           <Text style={[styles.label, { color: colors.text }]}>What are you selling?</Text>
@@ -2112,6 +2211,17 @@ const styles = StyleSheet.create({
   imagePickerIcon: { fontSize: 36 },
   imagePickerLabel: { fontSize: 14, fontWeight: "700" },
   imagePickerSub: { fontSize: 12 },
+  aiPhotoActions: { alignItems: "flex-start", gap: 8, marginTop: 10 },
+  aiPhotoButton: {
+    minHeight: 38,
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  aiPhotoButtonText: { fontSize: 13, fontWeight: "700" },
+  aiPhotoOriginalText: { fontSize: 12, fontWeight: "700", paddingVertical: 3 },
+  aiPhotoHint: { fontSize: 11, lineHeight: 16 },
 
   disabled: { opacity: 0.45 },
 });
