@@ -6,3 +6,8 @@ export const firebaseConfig = {
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
+
+export const cloudinaryConfig = {
+  cloudName: process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME,
+  uploadPreset: process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET,
+};

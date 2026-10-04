@@ -9,6 +9,7 @@ import {
 } from "firebase/firestore";
 import { getDownloadURL, ref, uploadString } from "firebase/storage";
 import { db, storage } from "./firebase";
+import { cloudinaryConfig } from "../firebase-config";
 import { defaultUserSettings, UserSettings } from "./settings";
 
 export type UserProfile = {
@@ -136,20 +137,32 @@ export async function saveProfilePhoto(
   return photoURL;
 }
 
-/**
- * Uploads a listing product image to Firebase Storage and returns its download URL.
- * Falls back to returning the base64 data URI if Storage is not configured.
- */
+/** Uploads a listing product image to Cloudinary and returns its secure URL. */
 export async function saveListingPhoto(
   uid: string,
   listingId: string,
   base64: string,
   contentType: string,
 ): Promise<string> {
-  if (!storage) {
-    // Fallback: return a data URI so listings still work without Firebase Storage
-    return `data:${contentType};base64,${base64}`;
+  const cloudName = cloudinaryConfig.cloudName?.trim();
+  const uploadPreset = cloudinaryConfig.uploadPreset?.trim();
+  if (cloudName && uploadPreset && cloudName !== "YOUR_CLOUD_NAME") {
+    const body = new FormData();
+    body.append("file", `data:${contentType};base64,${base64}`);
+    body.append("upload_preset", uploadPreset);
+    body.append("folder", "campus-marketplace/listings");
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`,
+      { method: "POST", body },
+    );
+    const result = (await response.json()) as { secure_url?: string; error?: { message?: string } };
+    if (!response.ok || !result.secure_url) {
+      throw new Error(result.error?.message || "Cloudinary image upload failed.");
+    }
+    return result.secure_url;
   }
+
+  if (!storage) return `data:${contentType};base64,${base64}`;
   const photoRef = ref(
     storage,
     `listings/${uid}/${listingId}/product-photo`,

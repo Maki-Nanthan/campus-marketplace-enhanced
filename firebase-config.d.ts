@@ -6,3 +6,8 @@ export const firebaseConfig: {
   messagingSenderId: string | undefined;
   appId: string | undefined;
 };
+
+export const cloudinaryConfig: {
+  cloudName: string | undefined;
+  uploadPreset: string | undefined;
+};

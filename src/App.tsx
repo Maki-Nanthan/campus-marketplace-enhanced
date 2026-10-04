@@ -87,6 +87,23 @@ const SELL_CATEGORIES = [
 
 const CONDITION_OPTIONS = ["Like New", "Good condition", "Fair", "For Parts"];
 
+async function imageUriToBase64(uri: string): Promise<string> {
+  const response = await fetch(uri);
+  if (!response.ok) throw new Error("Could not read the selected image.");
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      const base64 = result.split(",")[1];
+      if (base64) resolve(base64);
+      else reject(new Error("Could not prepare the selected image for upload."));
+    };
+    reader.onerror = () => reject(new Error("Could not read the selected image."));
+    reader.readAsDataURL(blob);
+  });
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
@@ -1517,8 +1534,9 @@ function SellModal({
         Alert.alert("Image too large", "Please choose an image under 8 MB.");
         return;
       }
+      const base64 = asset.base64 ?? await imageUriToBase64(asset.uri);
       setImageUri(asset.uri);
-      setImageBase64(asset.base64 ?? undefined);
+      setImageBase64(base64);
       setImageMimeType(asset.mimeType ?? "image/jpeg");
     } catch (error) {
       Alert.alert("Could not pick image", error instanceof Error ? error.message : "Please try again.");
