@@ -3,20 +3,29 @@ import { EmptyState } from "../components/EmptyState";
 import { ListingCard } from "../components/ListingCard";
 import { PageTitle } from "../components/PageTitle";
 import { Listing } from "../types";
+import { Currency } from "../currency";
+import { ThemeColors } from "../theme";
 export function MyListingsPage({
   items,
+  currency,
+  exchangeRate,
+  colors,
   onOpen,
   onSell,
 }: {
   items: Listing[];
+  currency: Currency;
+  exchangeRate?: number;
+  colors: ThemeColors;
   onOpen: (item: Listing) => void;
   onSell: () => void;
 }) {
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={[styles.content, { backgroundColor: colors.background }]}>
       <PageTitle
         title="My listings"
         subtitle="Items you have posted to campus marketplace"
+        colors={colors}
       />
       <FlatList
         data={items}
@@ -27,6 +36,7 @@ export function MyListingsPage({
         contentContainerStyle={styles.grid}
         ListEmptyComponent={
           <EmptyState
+            colors={colors}
             title="No listings yet"
             message="Publish an item and it will appear here."
             action="Sell an item"
@@ -37,6 +47,9 @@ export function MyListingsPage({
           <ListingCard
             item={item}
             saved={false}
+            currency={currency}
+            exchangeRate={exchangeRate}
+            colors={colors}
             onSave={() => undefined}
             onOpen={() => onOpen(item)}
           />
