@@ -170,12 +170,14 @@ npm run web
 Edit `.env` with your Firebase Web app credentials from the Firebase Console:
 
 ```env
-EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.firebasestorage.app
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
+EXPO_PUBLIC_FIREBASE_API_KEY=AIzaSyB5RomoQ8nyqr6gMz79K5esvL6oFKYvnr8
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=campus-marketplace-832fc.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=campus-marketplace-832fc
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=campus-marketplace-832fc.firebasestorage.app
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=580413778167
+EXPO_PUBLIC_FIREBASE_APP_ID=1:580413778167:web:409a305374088464848bf2
+EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME=nxfliwvb
+EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET=campus_marketplace
 ```
 
 > ⚠️ **Always restart Expo after editing `.env`** — values are baked in at dev-server start time.
