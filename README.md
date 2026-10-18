@@ -4,6 +4,8 @@
 
 Built with **React Native (Expo)**, **TypeScript**, and **Firebase** — works on **Web**, **Android**, and **iOS**.
 
+[Demo video](https://youtu.be/L65R6h64nUU)
+
 ---
 
 ## 📋 Table of Contents
@@ -27,6 +29,7 @@ Built with **React Native (Expo)**, **TypeScript**, and **Firebase** — works o
 ## ✨ Features
 
 ### 🔐 Authentication
+
 - **Email + Password** sign-up and sign-in (web & native)
 - **Phone SMS verification** with reCAPTCHA (web only) — supports resuming incomplete verification on next sign-in
 - **Google Sign-In** (web only, when enabled in Firebase console)
@@ -34,6 +37,7 @@ Built with **React Native (Expo)**, **TypeScript**, and **Firebase** — works o
 - Full Firebase auth error code mapping with human-readable messages
 
 ### 🛒 Listings
+
 - **Browse without signing in** — demo seed listings available for unauthenticated users
 - **Search** listings by keyword
 - **Filter** by category, min/max price (in your selected currency), and sort order
@@ -42,27 +46,32 @@ Built with **React Native (Expo)**, **TypeScript**, and **Firebase** — works o
 - Attach an optional **Special Offer** with: original price, offer price, title, optional description, and expiry date
 
 ### 💰 Multi-Currency Support
+
 - **USD** as the canonical storage currency (all prices stored in USD)
 - **LKR (Sri Lankan Rupee)** support with live exchange rates from [`open.er-api.com`](https://open.er-api.com)
 - Exchange rate is **cached in Firestore** for offline display
 - All price inputs and displays auto-convert between currencies
 
 ### 💬 Real-time Messaging
+
 - **Find users** by their unique username
 - **Private 1-to-1 conversations** — messages are append-only (no edit/delete)
 - **Real-time updates** powered by Firestore listeners
 - Conversation list shows last message preview
 
 ### 🏷️ Special Offers
+
 - Dedicated **Offers tab** showing all active, non-expired special offers
 - Each offer displays: discount price, original price, title, description, and expiry date
 
 ### 👤 User Profiles
+
 - Public profile with username, display name, photo, and campus affiliation
 - Update **profile photo** (uploaded to Firebase Storage)
 - Choose your **campus**
 
 ### ⚙️ Settings
+
 - Toggle **Light / Dark theme**
 - Switch display **currency** (USD ↔ LKR)
 - Settings persisted in Firestore under `users/{uid}.settings`
@@ -71,17 +80,17 @@ Built with **React Native (Expo)**, **TypeScript**, and **Firebase** — works o
 
 ## 🧰 Tech Stack
 
-| Layer | Technology |
-|---|---|
-| **Framework** | React Native + Expo SDK 57 |
-| **Language** | TypeScript |
-| **Web Runtime** | React Native Web |
-| **Backend / DB** | Firebase (Firestore, Auth, Storage) |
-| **Auth Methods** | Email/Password, Phone SMS, Google (web) |
-| **Real-time** | Firestore real-time listeners |
-| **Currency API** | [open.er-api.com](https://open.er-api.com) (live USD/LKR rates) |
-| **State Persistence** | `@react-native-async-storage/async-storage` |
-| **Image Picking** | `expo-image-picker` |
+| Layer                 | Technology                                                      |
+| --------------------- | --------------------------------------------------------------- |
+| **Framework**         | React Native + Expo SDK 57                                      |
+| **Language**          | TypeScript                                                      |
+| **Web Runtime**       | React Native Web                                                |
+| **Backend / DB**      | Firebase (Firestore, Auth, Storage)                             |
+| **Auth Methods**      | Email/Password, Phone SMS, Google (web)                         |
+| **Real-time**         | Firestore real-time listeners                                   |
+| **Currency API**      | [open.er-api.com](https://open.er-api.com) (live USD/LKR rates) |
+| **State Persistence** | `@react-native-async-storage/async-storage`                     |
+| **Image Picking**     | `expo-image-picker`                                             |
 
 ---
 
@@ -176,22 +185,27 @@ EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
 ## 🔥 Firebase Setup
 
 **Step 1 — Create a Firebase project**
+
 - [Firebase Console](https://console.firebase.google.com) → Add project
 
 **Step 2 — Register a Web app**
+
 - Project Settings → General → Your apps → Add app → Web
 - Copy the config values into `.env`
 
 **Step 3 — Enable Authentication providers**
+
 - Authentication → Sign-in method → Enable **Email/Password** and **Phone**
 - For Google (web): enable Google and add your domain to **Authorized Domains**
 - Configure SMS regions/quota for phone verification
 
 **Step 4 — Create Firestore & Storage**
+
 - Firestore Database → Create database (start in Production mode)
 - Storage → Get started
 
 **Step 5 — Native app config (iOS & Android)**
+
 - Register iOS & Android apps in Firebase (use bundle ID / package name from `app.json`)
 - Download `GoogleService-Info.plist` → place in project root
 - Download `google-services.json` → place in project root
@@ -227,31 +241,32 @@ npm run ios       # Run on iOS simulator (requires macOS)
 
 ## 🗂️ App Navigation (Tabs)
 
-| Tab | Auth Required | Description |
-|---|---|---|
-| **Explore** | ❌ No | Browse and search all listings |
-| **Offers** | ❌ No | View active, non-expired special offers |
-| **Saved** | ✅ Yes | Your bookmarked listings |
-| **Messages** | ✅ Yes | Conversations + real-time chat |
-| **Profile** | ✅ Yes | Your public profile & search for users |
-| **My Listings** | ✅ Yes | Create, edit, and manage your listings |
-| **Settings** | ✅ Yes | Account preferences (photo, theme, currency) |
+| Tab             | Auth Required | Description                                  |
+| --------------- | ------------- | -------------------------------------------- |
+| **Explore**     | ❌ No         | Browse and search all listings               |
+| **Offers**      | ❌ No         | View active, non-expired special offers      |
+| **Saved**       | ✅ Yes        | Your bookmarked listings                     |
+| **Messages**    | ✅ Yes        | Conversations + real-time chat               |
+| **Profile**     | ✅ Yes        | Your public profile & search for users       |
+| **My Listings** | ✅ Yes        | Create, edit, and manage your listings       |
+| **Settings**    | ✅ Yes        | Account preferences (photo, theme, currency) |
 
 ---
 
 ## 🗄️ Firestore Data Model
 
-| Collection | Access | Purpose |
-|---|---|---|
-| `listings/{id}` | Public read; owner write | All marketplace listings |
-| `users/{uid}` | Owner only | Private profile, settings, phone verification state |
-| `users/{uid}/saved/{listingId}` | Owner only | Saved/bookmarked listings |
-| `publicProfiles/{uid}` | Authenticated read; owner write | Public profile — username, displayName, photo, campus |
-| `usernames/{username}` | Authenticated read; owner write | Username uniqueness index for search |
-| `conversations/{id}` | Members only | Conversation metadata (lastMessage, memberIds) |
-| `conversations/{id}/messages/{id}` | Members only | Immutable chat messages (append-only) |
+| Collection                         | Access                          | Purpose                                               |
+| ---------------------------------- | ------------------------------- | ----------------------------------------------------- |
+| `listings/{id}`                    | Public read; owner write        | All marketplace listings                              |
+| `users/{uid}`                      | Owner only                      | Private profile, settings, phone verification state   |
+| `users/{uid}/saved/{listingId}`    | Owner only                      | Saved/bookmarked listings                             |
+| `publicProfiles/{uid}`             | Authenticated read; owner write | Public profile — username, displayName, photo, campus |
+| `usernames/{username}`             | Authenticated read; owner write | Username uniqueness index for search                  |
+| `conversations/{id}`               | Members only                    | Conversation metadata (lastMessage, memberIds)        |
+| `conversations/{id}/messages/{id}` | Members only                    | Immutable chat messages (append-only)                 |
 
 ### Listing document shape
+
 ```ts
 {
   id: string;
@@ -275,6 +290,7 @@ npm run ios       # Run on iOS simulator (requires macOS)
 ```
 
 ### User document shape
+
 ```ts
 // users/{uid}  — private, owner-only
 {
@@ -301,18 +317,20 @@ npm run ios       # Run on iOS simulator (requires macOS)
 ## 🔒 Security Rules
 
 ### Firestore (`firestore.rules`)
-| Rule | Detail |
-|---|---|
-| **Listings** | Anyone can read. Only the authenticated seller can create/edit/delete. Status restricted to `"available"` or `"sold"`. The `offer` field is server-validated. |
-| **Users** | Strictly owner-only read/write. `username` field is immutable once written. |
-| **publicProfiles** | Authenticated users can read. Owner can update only `username`, `displayName`, `photoURL`, `campus`. |
-| **Conversations** | Members-only read/write. Messages subcollection is **append-only** — no update or delete. |
+
+| Rule               | Detail                                                                                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Listings**       | Anyone can read. Only the authenticated seller can create/edit/delete. Status restricted to `"available"` or `"sold"`. The `offer` field is server-validated. |
+| **Users**          | Strictly owner-only read/write. `username` field is immutable once written.                                                                                   |
+| **publicProfiles** | Authenticated users can read. Owner can update only `username`, `displayName`, `photoURL`, `campus`.                                                          |
+| **Conversations**  | Members-only read/write. Messages subcollection is **append-only** — no update or delete.                                                                     |
 
 ### Storage (`storage.rules`)
-| Path | Rule |
-|---|---|
-| `users/{uid}/profile/` | Only the owner can upload; enforces image MIME type and max file size. |
-| `listings/{uid}/{listingId}/` | Only the listing owner can upload images. |
+
+| Path                          | Rule                                                                   |
+| ----------------------------- | ---------------------------------------------------------------------- |
+| `users/{uid}/profile/`        | Only the owner can upload; enforces image MIME type and max file size. |
+| `listings/{uid}/{listingId}/` | Only the listing owner can upload images.                              |
 
 > The Firebase **client config is intentionally public**. Security is enforced through Authentication, Firestore Rules, and Storage Rules — never include Admin SDK credentials in this app.
 
@@ -322,12 +340,12 @@ npm run ios       # Run on iOS simulator (requires macOS)
 
 Two complete themes with a **forest-green** color palette (defined in `src/theme.ts`):
 
-| Token | Light | Dark |
-|---|---|---|
+| Token        | Light     | Dark      |
+| ------------ | --------- | --------- |
 | `background` | `#F8F8F4` | `#121A17` |
-| `surface` | `#FFFFFF` | `#1B2722` |
-| `text` | `#173C34` | `#E8F0EB` |
-| `accent` | `#1F5D4C` | `#72B69A` |
+| `surface`    | `#FFFFFF` | `#1B2722` |
+| `text`       | `#173C34` | `#E8F0EB` |
+| `accent`     | `#1F5D4C` | `#72B69A` |
 
 Theme is toggled at runtime via Settings and persisted in Firestore per user.
 
@@ -335,34 +353,33 @@ Theme is toggled at runtime via Settings and persisted in Firestore per user.
 
 ## 💡 Key Design Decisions
 
-| Decision | Reason |
-|---|---|
-| **USD as canonical currency** | All prices stored in USD; LKR is display-only via a live exchange rate — avoids data inconsistency if rates change |
-| **Demo mode (no Firebase needed)** | Seed listings in `src/data.ts` let anyone browse without any configuration |
-| **Phone verification resumable** | Incomplete SMS verification state is stored in Firestore and the flow resumes automatically on the next sign-in |
-| **Immutable chat messages** | Enforced at Firestore Rules level — messages subcollection has no `update` or `delete` permission |
-| **Immutable usernames** | Once set, a username cannot be changed, preventing username hijacking and broken references |
-| **Public Firebase config** | Intentional — Firebase client config is safe to expose; access control lives in Auth + Security Rules |
+| Decision                           | Reason                                                                                                             |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **USD as canonical currency**      | All prices stored in USD; LKR is display-only via a live exchange rate — avoids data inconsistency if rates change |
+| **Demo mode (no Firebase needed)** | Seed listings in `src/data.ts` let anyone browse without any configuration                                         |
+| **Phone verification resumable**   | Incomplete SMS verification state is stored in Firestore and the flow resumes automatically on the next sign-in    |
+| **Immutable chat messages**        | Enforced at Firestore Rules level — messages subcollection has no `update` or `delete` permission                  |
+| **Immutable usernames**            | Once set, a username cannot be changed, preventing username hijacking and broken references                        |
+| **Public Firebase config**         | Intentional — Firebase client config is safe to expose; access control lives in Auth + Security Rules              |
 
 ---
 
 ## 📦 Dependencies
 
-| Package | Version | Purpose |
-|---|---|---|
-| `expo` | ~57.0.15 | App framework & build tooling |
-| `react-native` | 0.86.2 | Mobile UI runtime |
-| `react-native-web` | ^0.21.2 | Web rendering for React Native components |
-| `firebase` | ^12.19.0 | Auth, Firestore, Storage backend |
-| `expo-image-picker` | ^57.0.20 | Camera & photo library access |
-| `@react-native-async-storage/async-storage` | 3.1.1 | Local key-value persistence |
-| `expo-status-bar` | ~57.0.1 | Status bar styling |
-| `react` | 19.2.3 | UI rendering |
-| `react-dom` | 19.2.3 | DOM rendering (web target) |
+| Package                                     | Version  | Purpose                                   |
+| ------------------------------------------- | -------- | ----------------------------------------- |
+| `expo`                                      | ~57.0.15 | App framework & build tooling             |
+| `react-native`                              | 0.86.2   | Mobile UI runtime                         |
+| `react-native-web`                          | ^0.21.2  | Web rendering for React Native components |
+| `firebase`                                  | ^12.19.0 | Auth, Firestore, Storage backend          |
+| `expo-image-picker`                         | ^57.0.20 | Camera & photo library access             |
+| `@react-native-async-storage/async-storage` | 3.1.1    | Local key-value persistence               |
+| `expo-status-bar`                           | ~57.0.1  | Status bar styling                        |
+| `react`                                     | 19.2.3   | UI rendering                              |
+| `react-dom`                                 | 19.2.3   | DOM rendering (web target)                |
 
 ---
 
 ## 📄 License
 
 [MIT](LICENSE)
-
